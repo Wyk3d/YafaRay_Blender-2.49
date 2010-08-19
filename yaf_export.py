@@ -438,6 +438,35 @@ class yafrayRender:
 			yi.paramsSetBool("finalGather", renderer["finalGather"])
 			yi.paramsSetInt("bounces", renderer["bounces"])
 
+		elif "Photon Mapping GPU" == light_type:
+			# photon integrator
+			yi.paramsSetString("type", "photonmappingGPU")
+			yi.paramsSetInt("fg_samples", renderer["fg_samples"])
+			yi.paramsSetInt("photons", renderer["photons"])
+			yi.paramsSetInt("cPhotons", renderer["cPhotons"])
+			yi.paramsSetFloat("diffuseRadius", renderer["diffuseRadius"])
+			yi.paramsSetFloat("causticRadius", renderer["causticRadius"])
+			yi.paramsSetInt("search", renderer["search"])
+			yi.paramsSetBool("show_map", renderer["show_map"])
+			yi.paramsSetInt("fg_bounces", renderer["fg_bounces"])
+			yi.paramsSetInt("caustic_mix", renderer["caustic_mix"])
+			yi.paramsSetBool("finalGather", renderer["finalGather"])
+			yi.paramsSetInt("bounces", renderer["bounces"])
+			yi.paramsSetFloat("ph_leaf_radius", renderer["ph_leaf_radius"])
+			yi.paramsSetInt("ph_candidate_multi", renderer["ph_candidate_multi"])
+			yi.paramsSetFloat("ph_area_multiplier", renderer["ph_area_multiplier"])
+			yi.paramsSetBool("ph_show_cover", renderer["ph_show_cover"])
+			yi.paramsSetBool("ph_test_rays", renderer["ph_test_rays"])
+			yi.paramsSetBool("ph_benchmark_ray_count", renderer["ph_benchmark_ray_count"])
+			yi.paramsSetInt("ph_benchmark_min_tile_size", renderer["ph_benchmark_min_tile_size"])
+			
+			if renderer["ph_method"] == "Slow (Recomended for NVIDIA GPUs)":
+				yi.paramsSetInt("ph_method", 1)
+			else:
+				yi.paramsSetInt("ph_method", 0)
+			
+			yi.paramsSetInt("ph_work_group_size", renderer["ph_work_group_size"])
+
 		elif "Pathtracing" == light_type:
 			yi.paramsSetString("type", "pathtracing");
 			yi.paramsSetInt("path_samples", renderer["path_samples"])

@@ -1391,10 +1391,11 @@ class clTabRender:
 		self.connector = []
 		# class-specific types
 		self.AATypes = ["box", "gauss", "lanczos", "mitchell"]
-		self.LightingTypes = ["Direct lighting", "Photon mapping", "Pathtracing", "Bidirectional (EXPERIMENTAL)"]
+		self.LightingTypes = ["Direct lighting", "Photon mapping", "Photon Mapping GPU", "Pathtracing", "Bidirectional (EXPERIMENTAL)"]
 		self.LightingTypes += ["Debug"]
 		self.DebugTypes = ["N", "dPdU", "dPdV", "NU", "NV", "dSdU", "dSdV"]
 		self.CausticTypes = ["None", "Path", "Photon", "Path+Photon"]
+		self.PhGPUIntersectTypes = ["Slow (Recomended for NVIDIA GPUs)", "Normal"]
 
 		if haveQt:
 			self.OutputMethodTypes = ["GUI", "Image", "XML"]#, "Blender nodes"]
@@ -1469,6 +1470,16 @@ class clTabRender:
 		self.guiRenderPhFGSamples = Draw.Create(0) # numberbox
 		self.guiRenderPhFGBounces = Draw.Create(0) # numberbox
 		self.guiRenderPhShowMap = Draw.Create(0) # toggle
+
+		self.guiRenderPhGPULeafRadius = Draw.Create(1.0) # numberbox
+		self.guiRenderPhGPUCandidateMult = Draw.Create(0) # numberbox
+		self.guiRenderPhGPUAreaMult = Draw.Create(1.0) # numberbox
+		self.guiRenderPhGPUShowCover = Draw.Create(0) # toggle
+		self.guiRenderPhGPUTestRays = Draw.Create(0) # toggle
+		self.guiRenderPhGPUBenchRayCont = Draw.Create(0) # toggle
+		self.guiRenderPhGPUBenchMinTileSize = Draw.Create(0) # numberbox
+		self.guiRenderPhGPUMethod = Draw.Create(0) # menu
+		self.guiRenderPhGPUWorkGroupSize = Draw.Create(0) # numberbox
 
 		self.guiRenderDebugType = Draw.Create(0) # menu
 		self.guiRenderDebugMaps = Draw.Create(0) #toggle
@@ -1597,6 +1608,16 @@ class clTabRender:
 			(self.guiRenderPhFGBounces, "fg_bounces", 3, self.Renderer),
 			(self.guiRenderPhFGSamples, "fg_samples", 16, self.Renderer),
 			(self.guiRenderPhShowMap, "show_map", 0, self.Renderer),
+			# Photonmap GPU settings
+			(self.guiRenderPhGPULeafRadius, "ph_leaf_radius", 0.3, self.Renderer),
+			(self.guiRenderPhGPUCandidateMult, "ph_candidate_multi", 50, self.Renderer),
+			(self.guiRenderPhGPUAreaMult, "ph_area_multiplier", 6.0, self.Renderer),
+			(self.guiRenderPhGPUShowCover, "ph_show_cover", False, self.Renderer),
+			(self.guiRenderPhGPUTestRays, "ph_test_rays", False, self.Renderer),
+			(self.guiRenderPhGPUBenchRayCont, "ph_benchmark_ray_count", False, self.Renderer),
+			(self.guiRenderPhGPUBenchMinTileSize, "ph_benchmark_min_tile_size", 4, self.Renderer),
+			(self.guiRenderPhGPUMethod, "ph_method", self.PhGPUIntersectTypes, self.Renderer),
+			(self.guiRenderPhGPUWorkGroupSize, "ph_work_group_size", 32, self.Renderer),
 			# debug integrator
 			(self.guiRenderDebugType, "debugType", self.DebugTypes, self.Renderer),
 			(self.guiRenderDebugMaps, "show_perturbed_normals", 0, self.Renderer)]
@@ -1814,7 +1835,7 @@ class clTabRender:
 			self.guiRenderNoRecursive = Draw.Toggle("No Recursion", self.evEdit, 180, height, 150,
 				guiWidgetHeight, self.guiRenderNoRecursive.val, "No recursive raytracing, only pure path tracing" )
 
-		elif self.LightingTypes[self.guiRenderLightType.val] == "Photon mapping":
+		elif self.LightingTypes[self.guiRenderLightType.val] == "Photon mapping" or self.LightingTypes[self.guiRenderLightType.val] == "Photon Mapping GPU":
 			height = drawSepLineText(10, height, 320, "Photon settings")
 
 			self.guiRenderGIDepth = Draw.Number("Depth", self.evEdit, 10, height,
@@ -1853,6 +1874,43 @@ class clTabRender:
 				height, 150, guiWidgetHeight, self.guiRenderPhFGSamples.val, 1, 4096, "Number of samples for final gathering")
 			self.guiRenderPhShowMap = Draw.Toggle("Show map", self.evEdit, 180,
 				height, 150, guiWidgetHeight, self.guiRenderPhShowMap.val, "Directly show radiance map (disables final gathering step)")
+
+			if self.LightingTypes[self.guiRenderLightType.val] == "Photon Mapping GPU":
+				height += guiHeightOffset
+				self.guiRenderPhGPULeafRadius = Draw.Number("Disk Radius", self.evEdit, 10,
+					height, 150, guiWidgetHeight, self.guiRenderPhGPULeafRadius.val, 0.0001, 1000.0, "The radius of the disks generated on the triangles in the scene",
+					dummyfunc, 1.0, 4.0)
+				self.guiRenderPhGPUCandidateMult = Draw.Number("Point Candidantes", self.evEdit, 180,
+					height, 150, guiWidgetHeight, self.guiRenderPhGPUCandidateMult.val, 10, 100, "Number of candidates for each point sample in best candidate sampling",
+					dummyfunc, 1.0, 4.0)
+
+				height += guiHeightOffset
+				self.guiRenderPhGPUAreaMult = Draw.Number("Area Multiplier", self.evEdit, 10,
+					height, 150, guiWidgetHeight, self.guiRenderPhGPUAreaMult.val, 0.1, 50.0, "number of disks to generate per unit area",
+					dummyfunc, 1.0, 4.0)
+				self.guiRenderPhGPUShowCover = Draw.Toggle("Show Cover", self.evEdit, 180,
+					height, 150, guiWidgetHeight, self.guiRenderPhGPUShowCover.val, "preview the scene color coded by intersection errors (gray - good, green - background, red - wrong triangle or point, blue - didn't hit but should, pink - hit but shouldn't have)")
+
+				height += guiHeightOffset
+				self.guiRenderPhGPUTestRays = Draw.Toggle("Test Intersections", self.evEdit, 10,
+					height, 150, guiWidgetHeight, self.guiRenderPhGPUTestRays.val, "Compare the intersections computed in OpenCL with a reference")
+				self.guiRenderPhGPUBenchRayCont = Draw.Toggle("Benchmark", self.evEdit, 180,
+					height, 150, guiWidgetHeight, self.guiRenderPhGPUBenchRayCont.val, "Run benchmarking tests")
+				if self.guiRenderPhGPUBenchRayCont.val:
+					height += guiHeightOffset
+					self.guiRenderPhGPUBenchMinTileSize = Draw.Number("Min Tile Size", self.evEdit, 10,
+						height, 320, guiWidgetHeight, self.guiRenderPhGPUBenchMinTileSize.val, 1, 10000, "Minimal tile size for benchmarking",
+						dummyfunc, 1.0, 4.0)
+
+				height += guiHeightOffset
+				self.guiRenderPhGPUMethod = Draw.Menu(makeMenu("Intersection method", self.PhGPUIntersectTypes),
+					self.evEdit, 10, height, 320, guiWidgetHeight, self.guiRenderPhGPUMethod.val, "Choose GPU instersection method")
+
+				height += guiHeightOffset
+				self.guiRenderPhGPUWorkGroupSize = Draw.Number("Work Unit Number", self.evEdit, 10,
+					height, 320, guiWidgetHeight, self.guiRenderPhGPUWorkGroupSize.val, 1, 2048, "Depends on GPU working units available",
+					dummyfunc, 1.0, 4.0)
+
 
 		elif self.LightingTypes[self.guiRenderLightType.val] == "Debug":
 
