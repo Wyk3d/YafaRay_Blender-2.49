@@ -46,10 +46,10 @@ if _SYS == 'Windows':
 		pythonPath = dllPath + 'python\\'
 
 	from ctypes import cdll
-	dlls = ['Iex','Half','IlmThread','IlmImf','mingwm10','libfreetype-6','iconv','libxml2','libtiff-3','libyafaraycore', 'libyafarayplugin']
+	dlls = ['mingwm10','jpeg62','libpng14d','libxml2','libtiff3','yafaraycore', 'yafarayplugin']
 
-	qtDlls = ['QtCore4', 'QtGui4', 'libyafarayqt']
-	if os.path.exists(dllPath + 'libyafarayqt.dll'):
+	qtDlls = ['QtCore4', 'QtGui4', 'QtCored4', 'QtGuid4',  'yafarayqt']
+	if os.path.exists(dllPath + 'yafarayqt.dll'):
 		dlls += qtDlls
 	else:
 		haveQt = False
