@@ -30,7 +30,7 @@ import Blender
 # then set dllPath = "..\\YafaRay\\"
 # dllPath = "..\\YafaRay\\"
 
-dllPath = ""
+dllPath = "..\\YafaRay\\"
 pythonPath = ""
 haveQt = True
 
@@ -46,7 +46,7 @@ if _SYS == 'Windows':
 		pythonPath = dllPath + 'python\\'
 
 	from ctypes import cdll
-	dlls = ['mingwm10','jpeg62','libpng14d','libxml2','libtiff3','opencl_wrapper','yafaraycore', 'yafarayplugin']
+	dlls = ['mingwm10','jpeg62','libpng14d','libxml2','libtiff3','yafaraycore', 'opencl_wrapper', 'yafarayplugin']
 
 	qtDlls = ['QtCore4','QtGui4','QtCored4', 'QtGuid4',  'yafarayqt']
 	if os.path.exists(dllPath + 'yafarayqt.dll'):
