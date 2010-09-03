@@ -460,10 +460,16 @@ class yafrayRender:
 			yi.paramsSetBool("ph_benchmark_ray_count", renderer["ph_benchmark_ray_count"])
 			yi.paramsSetInt("ph_benchmark_min_tile_size", renderer["ph_benchmark_min_tile_size"])
 			
-			if renderer["ph_method"] == "Slow (Recomended for NVIDIA GPUs)":
-				yi.paramsSetInt("ph_method", 1)
-			else:
+			if renderer["ph_method"] == "Triangle":
+				yi.paramsSetInt("ph_method", 2)
+			elif renderer["ph_method"] == "Sphere Hierarchy":
 				yi.paramsSetInt("ph_method", 0)
+			elif renderer["ph_method"] == "Disk culled":
+				yi.paramsSetInt("ph_method", 1)
+			elif renderer["ph_method"] == "Sphere Hierarchy VEC":
+				yi.paramsSetInt("ph_method", 3)
+			elif renderer["ph_method"] == "Triangle VEC":
+				yi.paramsSetInt("ph_method", 4)
 			
 			yi.paramsSetInt("ph_work_group_size", renderer["ph_work_group_size"])
 
